@@ -63,7 +63,7 @@ export default function ApprovePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          role: 'employee',
+          role: roleMode,
           job: roleMode === 'employee' ? job : null,
           approverId: user.id,
         }),
@@ -214,7 +214,6 @@ export default function ApprovePage() {
                         <option value="">-- 직무 선택 --</option>
                         <option value="farmer">🌾 농부</option>
                         <option value="butcher">🔪 도축업자</option>
-                        <option value="chef">🍳 요리사</option>
                       </select>
                     )}
                   </div>
