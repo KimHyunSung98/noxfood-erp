@@ -52,13 +52,6 @@ export default function ApprovePage() {
     const roleMode = selectedRole[userId] || 'admin'
     const job = selectedJob[userId]
 
-    console.log('🔍 [DEBUG]')
-  console.log('  - userId:', userId)
-  console.log('  - roleMode:', roleMode)
-  console.log('  - selectedRole[userId]:', selectedRole[userId])
-  console.log('  - job:', job)
-
-
     if (roleMode === 'employee' && !job) {
       alert('직원을 선택할 경우 직무를 지정해주세요')
       return
