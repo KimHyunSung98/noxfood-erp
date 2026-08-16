@@ -6,15 +6,32 @@ import { useRouter } from 'next/navigation'
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [userStats, setUserStats] = useState({ online: 0, total: 0, pending: 0 })
 
   useEffect(() => {
-    const stored = localStorage.getItem('user')
-    if (!stored) {
-      router.push('/login')
-      return
-    }
-    setUser(JSON.parse(stored))
-  }, [router])
+  const stored = localStorage.getItem('user')
+  if (!stored) {
+    router.push('/login')
+    return
+  }
+  setUser(JSON.parse(stored))
+
+  // 🆕 사용자 통계 가져오기 추가!
+  fetch('/api/users')
+    .then(r => r.json())
+    .then(data => {
+      if (Array.isArray(data)) {
+        const now = Date.now()
+        const online = data.filter((u: any) => {
+          if (!u.last_seen || !u.approved) return false
+          return now - new Date(u.last_seen).getTime() < 5 * 60 * 1000
+        }).length
+        const pending = data.filter((u: any) => u.role === 'pending').length
+        setUserStats({ online, total: data.length, pending })
+      }
+    })
+}, [router])
+
 
   const handleLogout = () => {
     localStorage.removeItem('user')
@@ -32,89 +49,145 @@ export default function Dashboard() {
   const isAdmin = user.role === 'super_admin' || user.role === 'admin'
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 to-lime-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* 상단 바 */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 flex justify-between items-center">
+  <main className="min-h-screen bg-gradient-to-br from-gray-50 to-lime-50 p-6">
+    <div className="max-w-4xl mx-auto">
+      {/* 상단 바 */}
+      <div className="bg-white rounded-2xl shadow-sm p-4 mb-6 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-lime-400 to-green-500 rounded-xl flex items-center justify-center text-white text-lg">
+            🍳
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">녹스푸드 ERP</h1>
+            <p className="text-sm text-gray-500">{user.nickname}님 환영합니다</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
+        >
+          로그아웃
+        </button>
+      </div>
+
+      {/* 내 정보 */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+        <h2 className="text-lg font-semibold mb-3 text-gray-800">👤 내 정보</h2>
+        <div className="space-y-1 text-sm text-gray-600">
+          <p>📌 권한: <span className="font-semibold text-gray-800">
+            {user.role === 'super_admin' && '👑 최고 관리자'}
+            {user.role === 'admin' && '🛡️ 관리자'}
+            {user.role === 'employee' && user.job === 'butcher' && '🔪 도축업자'}
+            {user.role === 'employee' && user.job === 'farmer' && '🌾 농부'}
+            {user.role === 'employee' && user.job === 'chef' && '🍳 요리사'}
+          </span></p>
+          {user.job && <p>💼 직업: {user.job}</p>}
+        </div>
+      </div>
+
+      {/* 🆕 추가: 사용자 통계 카드 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm p-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-lime-400 to-green-500 rounded-xl flex items-center justify-center text-white text-lg">
-              🍳
+            <div className="w-12 h-12 bg-gradient-to-br from-lime-400 to-green-500 rounded-xl flex items-center justify-center text-2xl">
+              🟢
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-800">녹스푸드 ERP</h1>
-              <p className="text-sm text-gray-500">{user.nickname}님 환영합니다</p>
+              <div className="text-sm text-gray-500">현재 온라인</div>
+              <div className="text-2xl font-bold text-gray-800">{userStats.online}명</div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition"
-          >
-            로그아웃
-          </button>
         </div>
-
-        {/* 내 정보 */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-3 text-gray-800">👤 내 정보</h2>
-          <div className="space-y-1 text-sm text-gray-600">
-            <p>📌 권한: <span className="font-semibold text-gray-800">
-              {user.role === 'super_admin' && '👑 최고 관리자'}
-              {user.role === 'admin' && '🛡️ 관리자'}
-              {user.role === 'employee' && user.job === 'butcher' && '🔪 도축업자'}
-              {user.role === 'employee' && user.job === 'farmer' && '🌾 농부'}
-              {user.role === 'employee' && user.job === 'chef' && '🍳 요리사'}
-            </span></p>
-            {user.job && <p>💼 직업: {user.job}</p>}
-          </div>
-        </div>
-
-        {/* 관리자 메뉴 */}
-        {isAdmin && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold mb-4 text-gray-800">🛠️ 관리자 메뉴</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {/* ✅ 활성화: 가입 승인 */}
-              <button
-                onClick={() => router.push('/admin/approve')}
-                className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
-              >
-                <div className="text-2xl mb-1">✅</div>
-                <div className="font-semibold text-gray-800">가입 승인</div>
-                <div className="text-xs text-gray-500">대기 중인 가입 처리</div>
-              </button>
-
-              {/* ✅ 활성화: 의뢰 등록 */}
-              <button
-                onClick={() => router.push('/admin/orders')}
-                className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
-              >
-                <div className="text-2xl mb-1">📦</div>
-                <div className="font-semibold text-gray-800">의뢰 관리</div>
-                <div className="text-xs text-gray-500">새 의뢰 등록 / 목록</div>
-              </button>
-
-              {/* ✅ 활성화: 음식 관리 */}
-              <button
-                onClick={() => router.push('/admin/foods')}
-                className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
-              >
-                <div className="text-2xl mb-1">🍽️</div>
-                <div className="font-semibold text-gray-800">음식 관리</div>
-                <div className="text-xs text-gray-500">음식 추가 / 삭제</div>
-              </button>
-
-              <button
-                onClick={() => alert('다음 단계에서 추가됩니다!')}
-                className="p-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-left opacity-50 cursor-not-allowed transition"
-              >
-                <div className="text-2xl mb-1">📜</div>
-                <div className="font-semibold text-gray-800">거래 내역</div>
-                <div className="text-xs text-gray-500">곧 추가됩니다</div>
-              </button>
+        <div className="bg-white rounded-2xl shadow-sm p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-xl flex items-center justify-center text-2xl">
+              👥
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">전체 가입자</div>
+              <div className="text-2xl font-bold text-gray-800">{userStats.total}명</div>
             </div>
           </div>
-        )}
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-5">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-amber-500 rounded-xl flex items-center justify-center text-2xl">
+              ⏳
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">승인 대기</div>
+              <div className="text-2xl font-bold text-gray-800">{userStats.pending}명</div>
+            </div>
+          </div>
+        </div>
       </div>
-    </main>
-  )
+
+      {/* 🆕 추가: 관리자 전용 사용자 관리 버튼 */}
+      {isAdmin && (
+        <button
+          onClick={() => router.push('/admin/users')}
+          className="w-full bg-white rounded-2xl shadow-sm p-5 mb-6 hover:bg-gray-50 transition flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-lime-400 to-green-500 rounded-xl flex items-center justify-center text-2xl">
+              👥
+            </div>
+            <div className="text-left">
+              <div className="font-semibold text-gray-800">사용자 관리</div>
+              <div className="text-xs text-gray-500">유저 목록 · 차단 관리 · 온라인 현황</div>
+            </div>
+          </div>
+          <span className="text-gray-400">→</span>
+        </button>
+      )}
+
+      {/* 관리자 메뉴 */}
+      {isAdmin && (
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-800">🛠️ 관리자 메뉴</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* ✅ 활성화: 가입 승인 */}
+            <button
+              onClick={() => router.push('/admin/approve')}
+              className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
+            >
+              <div className="text-2xl mb-1">✅</div>
+              <div className="font-semibold text-gray-800">가입 승인</div>
+              <div className="text-xs text-gray-500">대기 중인 가입 처리</div>
+            </button>
+
+            {/* ✅ 활성화: 의뢰 등록 */}
+            <button
+              onClick={() => router.push('/admin/orders')}
+              className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
+            >
+              <div className="text-2xl mb-1">📦</div>
+              <div className="font-semibold text-gray-800">의뢰 관리</div>
+              <div className="text-xs text-gray-500">새 의뢰 등록 / 목록</div>
+            </button>
+
+            {/* ✅ 활성화: 음식 관리 */}
+            <button
+              onClick={() => router.push('/admin/foods')}
+              className="p-4 bg-lime-50 hover:bg-lime-100 rounded-xl text-left transition border border-lime-100"
+            >
+              <div className="text-2xl mb-1">🍽️</div>
+              <div className="font-semibold text-gray-800">음식 관리</div>
+              <div className="text-xs text-gray-500">음식 추가 / 삭제</div>
+            </button>
+
+            <button
+              onClick={() => alert('다음 단계에서 추가됩니다!')}
+              className="p-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-left opacity-50 cursor-not-allowed transition"
+            >
+              <div className="text-2xl mb-1">📜</div>
+              <div className="font-semibold text-gray-800">거래 내역</div>
+              <div className="text-xs text-gray-500">곧 추가됩니다</div>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  </main>
+)
 }
