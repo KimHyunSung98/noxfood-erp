@@ -29,7 +29,6 @@ export default function Login() {
         return
       }
 
-      // 로그인 정보 저장
       localStorage.setItem('user', JSON.stringify(data.user))
       router.push('/dashboard')
     } catch (err) {
@@ -38,6 +37,13 @@ export default function Login() {
       setLoading(false)
     }
   }
+
+  // ✅ 인라인 스타일 (다크모드 무관 검정 글자)
+  const inputStyle = {
+    color: '#111827',
+    WebkitTextFillColor: '#111827',
+    backgroundColor: '#ffffff',
+  } as const
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center p-4">
@@ -55,6 +61,7 @@ export default function Login() {
               type="text"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
+              style={inputStyle}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
             />
@@ -68,6 +75,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              style={inputStyle}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
             />
